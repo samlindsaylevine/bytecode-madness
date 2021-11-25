@@ -12,6 +12,12 @@ tasks {
     named<Test>("test") {
         useJUnitPlatform()
     }
+
+    withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).all {
+        kotlinOptions {
+            jvmTarget = JavaVersion.VERSION_11.toString()
+        }
+    }
 }
 
 dependencies {

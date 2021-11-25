@@ -9,4 +9,4 @@ Indeed, I was able to hand-craft the class file structure, working from the docs
 Whee! A sane reference implementation of the method is also provided, along with unit tests that validate the identical 
 behavior of both.
 
-Continuous integration through Github Actions: [![Tests](https://github.com/samlindsaylevine/bytecode-maddness/workflows/Tests/badge.svg)](https://github.com/samlindsaylevine/bytecode-madness/actions)
+[![Tests](https://github.com/samlindsaylevine/bytecode-madness/workflows/Tests/badge.svg)](https://github.com/samlindsaylevine/bytecode-madness/actions)
