@@ -1,7 +1,10 @@
 package com.lindsaylevine.bytecode
 
-import java.io.File
-
+/**
+ * A happy little integer utility class that provides a test for whether a possibly-null integer is positive.
+ *
+ * Two implementations are provided; you can choose your own adventure!
+ */
 object IntegerUtils {
     /**
      * Hey, this seems like a very normal, reasonable way to test whether a possibly-null integer is positive.
@@ -21,7 +24,7 @@ object IntegerUtils {
             0x00, 0x00, 0x00, 0x36,
 
             // Size of the constant pool, two bytes. One larger than number of elements.
-            0x00, 0x0e,
+            0x00, 0x0f,
 
             // The constant pool, including all character data, class name, etc. Note that it is 1-indexed.
             // First byte of each entry is the type.
@@ -94,7 +97,11 @@ object IntegerUtils {
             0x00, 0x09,
             0x00, 0x0c,
 
-
+            // 14-  A string of length 13
+            0x01, 0x00, 0xd,
+            // "StackMapTable"
+            // This table is an attribute of the Code section that is used to handle type checking at runtime.
+            0x53, 0x74, 0x61, 0x63, 0x6b, 0x4d, 0x61, 0x70, 0x54, 0x61, 0x62, 0x6c, 0x65,
 
             // -- End constant pool --
 
@@ -128,15 +135,22 @@ object IntegerUtils {
             // Method signature index in constant pool
             0x00, 0x06,
 
-            // Attribute size 1
+            // Method attribute size 1
             0x00, 0x01,
             // "Code" attribute - reference to index in our constant pool
             0x00, 0x07,
 
-            // Number of bytes of this code attribute (will be the number of bytes of code plus 12 - 2 of max stack
-            // size, 2 of max local variable size, 4 for the size of code, 2 for exception table size, 2 for attribute
-            // count)
-            0x00, 0x00, 0x00, 0x1f,
+            // Number of bytes of this code attribute (will be:
+            // 2 bytes of max stack size
+            // 2 bytes of max local variable size
+            // 4 for the size of code
+            // X (=19) for the code itself
+            // 2 for exception table size
+            // 2 for attribute count
+            // 10 for StackMapTable (name, size, frame count, and contents)
+            //
+            // for a total of 41.
+            0x00, 0x00, 0x00, 0x29,
 
             // Maximum depth of the operand stack at any point during the execution of this method.
             0x00, 0x02,
@@ -144,7 +158,7 @@ object IntegerUtils {
             // Maximum number of local variables, including the method argument.
             0x00, 0x01,
 
-            // Number of bytes of code - 19
+            // Number of bytes of actual machine code.
             0x00, 0x00, 0x00, 0x13,
 
             //   -- Actual machine code --
@@ -194,19 +208,37 @@ object IntegerUtils {
             // Exception table has size 0.
             0x00, 0x00,
 
-            // Method attribute count is 0.
-            0x00, 0x00,
+            // Method attribute count is 1, for the StackMapTable.
+            0x00, 0x01,
 
-            // -- Attributes (none) --
+            // This StackMapTable is used for type checking at runtime. Each target of a jump needs to have an entry
+            // (a "stack map frame") that defines the local variable and operand stack types.
+            // In our code above, whenever we jump, we don't have any other local variables or operand stack values
+            // at all. So, we can use "same" for each of them.
+
+            // The "StackMapTable" name index from the constant pool.
+            0x00, 0x0e,
+
+            // The number of bytes of this StackMapTable attribute.
+            0x00, 0x00, 0x00, 0x04,
+
+            // The number of frames. Since we have 2 jump targets (ifnonnull and ifgt both jump), there are 2 stack map
+            // frames.
+            0x00, 0x02,
+
+            // The stack map frames. As above, each of these is a "same_frame" indicating that the operand stack is
+            // empty and the local variables are unchanged. That means they are all single bytes in the range 0-63.
+            // The first entry is the offset of the first jump target instruction; and each entry after that is the
+            // (offset delta - 1).
+            // Our jump targets are to offset 7 and 17, so our values are 7 and 9.
+            0x07, 0x09,
+
+            // -- Class attributes (none) --
             // These two bytes are the size of this section.
             0x00, 0x00
 
         ).map { it.toByte() }
             .toByteArray()
-
-        File("PositivityTester.class").writeBytes(bytes)
-
-        // return true
 
         // Now we can use those bytes to load the class...
         val classLoader = object: ClassLoader() {
@@ -220,17 +252,6 @@ object IntegerUtils {
         as Boolean
 
         // By the way, good thing it's a static method, because we certainly didn't define a constructor for our
-        // hand-defined class...
+        // hand-defined class, so there's no way to instantiate one...
     }
-}
-
-fun main() {
-    val string = "()I"
-
-    println("// A string of length ${string.length}")
-    println("0x01, 0x00, 0x${string.length.toString(radix = 16)},")
-    println("// \"$string\"")
-    println(string.encodeToByteArray().joinToString(separator = ", ", postfix = ",") { "0x${it.toString(16)}" })
-
-    IntegerUtils.isPositiveInsane(1)
 }
